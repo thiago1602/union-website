@@ -1,0 +1,131 @@
+-- Alunos:
+ -- Lucas Giovani Neves Maciel RA: 1871936
+ -- Thiago de Moraes Fonseca   RA: 1871629
+ -- Gabriel Neves Maciel       RA: 1871200
+
+-- #####################################################################################################################################
+-- Exercicio 1
+drop function  valor_total_cupom;
+
+create or replace function valor_total_cupom(cupom integer)
+returns decimal as $$
+declare v_total decimal;
+begin
+      v_total := (
+      	select 
+			CAST(sum(ci.quantidade * p.valorunitario) as decimal(15, 2)) as valortotal
+		from cupom c 
+		join cupom_item ci on c.id_cupom = ci.id_cupom and ci.cancelado <> 1
+		join produto p on ci.id_produto = p.id_produto 
+		where c.id_cupom = cupom);
+	  return v_total;
+end;
+$$ language plpgsql;
+
+-- Select
+select valor_total_cupom(3);
+
+-- #####################################################################################################################################
+-- Exercicio 2
+drop function  quantidade_item_cupom;
+
+-- Recebe o Id do Cupom e o Id do item 
+create or replace function quantidade_item_cupom(cupom_id integer, item_id integer)
+returns integer as $$
+declare quantidade integer;
+begin
+      quantidade := (
+      	select 
+			sum(ci.quantidade)
+		from cupom c 
+		join cupom_item ci on c.id_cupom = ci.id_cupom and ci.cancelado <> 1
+		join produto p on ci.id_produto = p.id_produto 
+		where c.id_cupom = cupom_id
+		and ci.id_item = item_id);
+	  return quantidade;
+end;
+$$ language plpgsql;
+
+-- Select
+select quantidade_item_cupom(3,8);
+
+-- #####################################################################################################################################
+-- Exercicio 3		
+drop function desconto_item_cupom;
+
+create or replace function desconto_item_cupom(cupom_id integer, item_id integer)
+returns numeric as $$
+declare valor_desconto numeric;
+begin
+      valor_desconto := (
+      	select 
+			COALESCE(((trunc(quantidade_item_cupom(cupom_id, item_id) / prod.quantidade_atacado)) * (prod.percentual_desconto / 100)) * (prod.valorunitario * prod.quantidade), 0) as valor_total_desconto
+		from (	select *
+				from cupom_item ci 
+				left join produto p on ci.id_produto = p.id_produto 
+				left join produto_desconto_atacado pda on p.id_produto = pda.id_produto
+				where ci.id_cupom = cupom_id
+				and ci.id_item = item_id
+				and ci.cancelado <> 1) as prod);
+	  return valor_desconto;
+end;
+$$ language plpgsql;
+
+-- Select
+select desconto_item_cupom(3, 8);
+
+-- #####################################################################################################################################
+-- Exercicio 4
+
+drop function insere_desconto;
+
+create or replace FUNCTION insere_desconto()
+returns TRIGGER AS $$
+declare v_total numeric;
+begin
+	if TG_OP = 'INSERT' then
+		if desconto_item_cupom(new.id_cupom, new.id_item) > 0 then 
+			INSERT INTO cupom_item_desconto
+			(id_item, valor_desconto)
+			VALUES(new.id_item, desconto_item_cupom(new.id_cupom, new.id_item));
+			RETURN NEW;
+		end if;
+	ELSIF TG_OP = 'UPDATE' then
+		if old.cancelado = 0 and new.cancelado = 1 then
+			delete from cupom_item_desconto where id_item = old.id_item;
+			RETURN NEW;
+		end if;
+		if old.quantidade <> new.quantidade then
+			v_total := (
+				select count(*)
+				from cupom_item_desconto
+				WHERE id_item = old.id_item
+			);
+		
+			if desconto_item_cupom(new.id_cupom, new.id_item) > 0 then 
+				if v_total > 0 then
+					UPDATE cupom_item_desconto
+					SET valor_desconto = desconto_item_cupom(new.id_cupom, new.id_item)
+					WHERE id_item = old.id_item;
+					RETURN NEW;
+				else
+					INSERT INTO cupom_item_desconto
+					(id_item, valor_desconto)
+					VALUES(new.id_item, desconto_item_cupom(new.id_cupom, new.id_item));
+					RETURN NEW;
+				end if;
+			else
+				delete from cupom_item_desconto where id_item = old.id_item;
+				RETURN NEW;
+			end if;
+		end if;
+	end if;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER insere_desconto 
+after insert or update ON cupom_item 
+FOR EACH row EXECUTE PROCEDURE insere_desconto();
+
+
