@@ -83,9 +83,9 @@ return [
     |
     */
 
-    'layout_topnav' => false,
+    'layout_topnav' => true,
     'layout_boxed' => null,
-    'layout_fixed_sidebar' => null,
+    'layout_fixed_sidebar' => false,
     'layout_fixed_navbar' => null,
     'layout_fixed_footer' => null,
     'layout_dark_mode' => false,
