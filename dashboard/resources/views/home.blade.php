@@ -16,7 +16,7 @@
 
                     <img loading="lazy" src="https://assetscdn-web.freshchat.com/agent/static/assets/images/settings/Account_settings-9f93bc6df66163d127762a8f0b929197.svg" class="card-img-top" height="80" width="80">
                     <div class="card-body">
-                        <a href="http://localhost:8000/livehelperchat_laravel/index.php/site_admin/user/login" class="btn btn-outline-secondary">Acessar CRM</a>
+                        <a href="http://localhost:8000/livehelperchat-master/lhc_web/index.php/site_admin/" class="btn btn-outline-secondary">Acessar CRM</a>
                     </div>
                     </div>
 
