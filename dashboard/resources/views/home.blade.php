@@ -128,12 +128,4 @@
 @section('js')
 
 
-    <script type="text/javascript">
-        var LHCFAQOptions = {status_text:'FAQ',url:'replace_me_with_dynamic_url',identifier:''};
-        (function() {
-            var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-            po.src = '//localhost:8000/livehelperchat_laravel/index.php/por/faq/getstatus/(position)/bottom_right/(top)/450/(units)/pixels';
-            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-        })();
-    </script>
 @stop
